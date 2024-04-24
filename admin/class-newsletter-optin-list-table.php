@@ -59,7 +59,8 @@ class Newsletter_Optin_List_Table extends WP_List_Table {
                 'name' => $row['name'],
                 'order_date' => $order_date,
                 'order_id' => sprintf('<a href="post.php?post=%d&action=edit">%d</a>', $row['order_id'], $row['order_id']),
-                'actions' => sprintf('<a href="?page=email_optins&action=delete&email=%s" class="button" onclick="return confirm(\'Bist du sicher, dass du diese E-Mail Adresse löschen möchtest?\')">Löschen</a>', urlencode($row['email']))
+                'actions' => sprintf('<a href="?page=email_optins&action=delete&email=%s&_wpnonce=%s" class="button" onclick="return confirm(\'Bist du sicher, dass du diese E-Mail Adresse löschen möchtest?\')">Löschen</a>', urlencode($row['email']), wp_create_nonce('delete_email'))
+
             );
 
             if (get_option('newsletter_optin_clv_enable') == '1') {

@@ -45,7 +45,8 @@ class Newsletter_Optin_List_Table_Manual extends WP_List_Table {
         foreach ($results as $row) {
             $data[] = array(
                 'email' => $row['email'],
-                'actions' => sprintf('<a href="?page=email_optins&action=delete&email=%s" class="button" onclick="return confirm(\'Bist du sicher, dass du diese E-Mail Adresse löschen möchtest?\')">Löschen</a>', urlencode($row['email']))
+                'actions' => sprintf('<a href="?page=email_optins&action=delete&email=%s&_wpnonce=%s" class="button" onclick="return confirm(\'Bist du sicher, dass du diese E-Mail Adresse löschen möchtest?\')">Löschen</a>', urlencode($row['email']), wp_create_nonce('delete_email'))
+
             );
         }
 

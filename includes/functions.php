@@ -321,5 +321,24 @@ function newsletter_optin_clv_enable_cb() {
     echo '<input type="checkbox" id="newsletter_optin_clv_enable" name="newsletter_optin_clv_enable" value="1" ' . checked(1, $clv_enabled, false) . '>';
 }
 
+function handle_delete_request() {
+    if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['email']) && wp_verify_nonce($_GET['_wpnonce'], 'delete_email')) {
+        global $wpdb;
+        $email = sanitize_email($_GET['email']);
+
+        // Assume you have different tables for manual and automatic opt-ins as per your classes
+        $tables = [$wpdb->prefix . 'newsletter_optin', $wpdb->prefix . 'newsletter_optin_manual'];
+
+        foreach ($tables as $table) {
+            $wpdb->delete($table, ['email' => $email], ['%s']);
+        }
+
+        // Redirect after deletion to avoid re-deletion on refresh
+        wp_redirect(add_query_arg('page', 'email_optins', admin_url('admin.php')));
+        exit;
+    }
+}
+add_action('admin_init', 'handle_delete_request');
+
 
 
