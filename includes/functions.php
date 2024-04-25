@@ -162,7 +162,7 @@ function optin_emails_list_callback() {
         echo '<div style="display: flex; align-items: center; margin-bottom: 20px;">';
         echo '<strong>Emails:</strong>&nbsp;';
         echo '<input id="email_list" type="text" value="' . esc_attr($emails_str) . '" style="flex: 1; margin-right: 10px;" readonly>';
-        echo '<button onclick="copyEmailsToClipboard()" class="button action">Copy to Clipboard</button>';
+        echo '<button onclick="copyEmailsToClipboard()" class="button action">Kopieren</button>';
         echo '</div>';
         echo '<p id="copy_success_message" style="display:none; color: green;"></p>';
     }
@@ -215,7 +215,7 @@ $list_table_manual->display();
         var message = document.getElementById('copy_success_message');
         copyText.select();
         document.execCommand('copy');
-        message.textContent = 'Copied to Clipboard!';
+        message.textContent = 'In Zwischenablage kopiert!';
         message.style.display = 'block';
         setTimeout(function() { message.style.display = 'none'; }, 3000);
     }

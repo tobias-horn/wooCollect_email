@@ -1,5 +1,8 @@
 <?php
 
+if (!class_exists('WP_List_Table')) {
+    require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
+}
 
 class Newsletter_Optin_List_Table extends WP_List_Table {
     public function prepare_items() {
@@ -20,6 +23,7 @@ class Newsletter_Optin_List_Table extends WP_List_Table {
             'name' => 'Name',
             'order_date' => 'Letzte',
             'order_id' => 'Bestell-ID',
+            'order_count' => 'Bestellungen Gesamt', // Added new column for total number of orders
             'actions' => 'Aktionen'
         );
         if (get_option('newsletter_optin_clv_enable') == '1') {
@@ -46,21 +50,21 @@ class Newsletter_Optin_List_Table extends WP_List_Table {
         $table_name = $wpdb->prefix . 'newsletter_optin';
         $data = array();
 
-        // The query now includes a WHERE clause to filter by type "order-based"
         $query = "SELECT * FROM {$table_name} ORDER BY order_id DESC";
         $results = $wpdb->get_results($query, ARRAY_A);
 
         foreach ($results as $row) {
             $order = wc_get_order($row['order_id']);
             $order_date = $order ? $order->get_date_created()->date('d.m.Y') : 'Bestellung nicht gefunden';
+            $order_count = $this->get_total_orders_by_email($row['email']);  // Get total orders for each email
 
             $entry = array(
                 'email' => $row['email'],
                 'name' => $row['name'],
                 'order_date' => $order_date,
                 'order_id' => sprintf('<a href="post.php?post=%d&action=edit">%d</a>', $row['order_id'], $row['order_id']),
+                'order_count' => $order_count,  // Display total orders in the table
                 'actions' => sprintf('<a href="?page=email_optins&action=delete&email=%s&_wpnonce=%s" class="button" onclick="return confirm(\'Bist du sicher, dass du diese E-Mail Adresse löschen möchtest?\')">Löschen</a>', urlencode($row['email']), wp_create_nonce('delete_email'))
-
             );
 
             if (get_option('newsletter_optin_clv_enable') == '1') {
@@ -91,6 +95,24 @@ class Newsletter_Optin_List_Table extends WP_List_Table {
             $email
         ));
         return is_null($total_spent) ? wc_price(0) : wc_price($total_spent);
+    }
+
+    private function get_total_orders_by_email($email) {
+        global $wpdb;
+        $count = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*)
+            FROM {$wpdb->posts} p
+            WHERE p.post_type = 'shop_order'
+            AND p.post_status IN ('wc-completed', 'wc-processing', 'wc-on-hold')
+            AND EXISTS (
+                SELECT * FROM {$wpdb->postmeta}
+                WHERE post_id = p.ID
+                AND meta_key = '_billing_email'
+                AND meta_value = %s
+            )",
+            $email
+        ));
+        return $count;
     }
 
     public function column_default($item, $column_name) {
