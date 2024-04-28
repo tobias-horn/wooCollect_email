@@ -19,9 +19,10 @@ require_once plugin_dir_path(__FILE__) . 'includes/functions.php';
 require_once plugin_dir_path(__FILE__) . 'admin/class-newsletter-optin-list-table.php';
 require_once plugin_dir_path(__FILE__) . 'admin/class-newsletter-optin-list-table-manual.php';
 require_once plugin_dir_path(__FILE__) . 'public/checkout_checkboxes.php'; // Include the checkout checkbox setup
+require_once plugin_dir_path(__FILE__) . 'public/unsubscribe.php'; 
+
 
 // Activation Hooks
 register_activation_hook(__FILE__, 'create_newsletter_optin_table');
 register_activation_hook(__FILE__, 'create_newsletter_optin_table_manual');
-
 

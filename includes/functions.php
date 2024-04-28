@@ -157,7 +157,7 @@ function optin_emails_list_callback() {
     $emails = $wpdb->get_col("SELECT email FROM $table_name UNION SELECT email FROM $table_name_manual");
     if (!empty($emails)) {
         $emails_str = implode(', ', $emails);
-        echo '<h2>E-Mail Liste</h2>';
+        echo '<h2>E-Mail Liste - WooCommerce</h2>';
         echo '<p>Hier kannst du alle E-Mail Adressen direkt kopieren und mit einem Klick in einen E-Mail Client deiner Wahl einfügen.</p>';
         echo '<div style="display: flex; align-items: center; margin-bottom: 20px;">';
         echo '<strong>Emails:</strong>&nbsp;';
@@ -176,7 +176,8 @@ function optin_emails_list_callback() {
     echo '</div>'; // Close the wrap div
 
 
-    echo '<h2>E-Mail Liste</h2>';
+    echo '<h2>E-Mail Liste - Manuell</h2>';
+    echo '<p>Hier kannst du E-Mail Adressen manuell in die Liste hinzufügen.</p>';
     
     
     // New form for adding email addresses manually
@@ -302,7 +303,6 @@ function newsletter_optin_settings_init() {
 }
 
 function newsletter_optin_settings_section_cb() {
-    echo 'Hier kannst du das Verhalten des Plugins beeinflussen.';
 }
 
 function newsletter_optin_enable_cb() {
