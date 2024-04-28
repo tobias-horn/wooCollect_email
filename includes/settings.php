@@ -9,6 +9,7 @@ function newsletter_optin_settings_init() {
     add_settings_section(
         'newsletter_optin_settings_section',
         'Einstellungen',
+        null,  // Removed callback here
         'email_optins'
     );
 
@@ -28,7 +29,6 @@ function newsletter_optin_settings_init() {
         'newsletter_optin_settings_section'
     );
 
-
     // Add the new setting field for CLV
     add_settings_field(
         'newsletter_optin_clv_enable',
@@ -40,9 +40,15 @@ function newsletter_optin_settings_init() {
 
     // Register the new option
     register_setting('newsletter_optin_settings', 'newsletter_optin_clv_enable');
+
+    // Add new settings section titled "Opt-out"
+    add_settings_section(
+        'newsletter_optin_opt_out_section',
+        'Opt-out',
+        'newsletter_optin_opt_out_section_cb',
+        'email_optins'
+    );
 }
-
-
 
 function newsletter_optin_enable_cb() {
     $option = get_option('newsletter_optin_enable');
@@ -54,27 +60,11 @@ function newsletter_optin_message_cb() {
     echo '<input type="text" id="newsletter_optin_message" name="newsletter_optin_message" value="' . esc_attr($message) . '" style="width: 100%;">';
 }
 
-// Callback function for the CLV checkbox
 function newsletter_optin_clv_enable_cb() {
     $clv_enabled = get_option('newsletter_optin_clv_enable');
     echo '<input type="checkbox" id="newsletter_optin_clv_enable" name="newsletter_optin_clv_enable" value="1" ' . checked(1, $clv_enabled, false) . '>';
 }
 
-function handle_delete_request() {
-    if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['email']) && wp_verify_nonce($_GET['_wpnonce'], 'delete_email')) {
-        global $wpdb;
-        $email = sanitize_email($_GET['email']);
-
-        // Assume you have different tables for manual and automatic opt-ins as per your classes
-        $tables = [$wpdb->prefix . 'newsletter_optin', $wpdb->prefix . 'newsletter_optin_manual'];
-
-        foreach ($tables as $table) {
-            $wpdb->delete($table, ['email' => $email], ['%s']);
-        }
-
-        // Redirect after deletion to avoid re-deletion on refresh
-        wp_redirect(add_query_arg('page', 'email_optins', admin_url('admin.php')));
-        exit;
-    }
+function newsletter_optin_opt_out_section_cb() {
+    echo 'Du kannst mithilfe des Shortcodes \'woo_emails_unsubscribe_form\' ein abmelde Formular auf deiner Seite einfügen. Bitte vergiss nicht, den Link zu dieser Seite in deinen E-Mails hinzuzufügen';
 }
-add_action('admin_init', 'handle_delete_request');

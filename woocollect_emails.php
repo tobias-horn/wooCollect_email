@@ -15,6 +15,7 @@ if (!defined('WPINC')) {
 }
 
 // Include functions and classes
+require_once plugin_dir_path(__FILE__) . 'includes/settings.php';
 require_once plugin_dir_path(__FILE__) . 'includes/functions.php';
 require_once plugin_dir_path(__FILE__) . 'admin/class-newsletter-optin-list-table.php';
 require_once plugin_dir_path(__FILE__) . 'admin/class-newsletter-optin-list-table-manual.php';

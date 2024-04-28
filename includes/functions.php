@@ -11,6 +11,7 @@ function create_newsletter_optin_table() {
             email varchar(255) NOT NULL UNIQUE,
             name varchar(255) NOT NULL,
             order_id bigint(20) NOT NULL UNIQUE,
+            status_confirmed TINYINT(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (order_id)
         ) $charset_collate;";
 
@@ -18,7 +19,6 @@ function create_newsletter_optin_table() {
         dbDelta($sql);
     }
 }
-
 
 function create_newsletter_optin_table_manual() {
     global $wpdb;
@@ -30,6 +30,7 @@ function create_newsletter_optin_table_manual() {
         $sql = "CREATE TABLE $table_name_manual (
             id bigint(20) NOT NULL AUTO_INCREMENT,
             email varchar(255) NOT NULL UNIQUE,
+            status_confirmed TINYINT(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (id)
         ) $charset_collate;";
 
@@ -41,44 +42,42 @@ function create_newsletter_optin_table_manual() {
 
 
 
+
 function save_newsletter_optin_checkbox($order_id) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'newsletter_optin';
     $order = wc_get_order($order_id);
     $email = $order->get_billing_email();
     $name = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+    $status_confirmed = isset($_POST['newsletter_optin']) && $_POST['newsletter_optin'] === '1' ? 1 : 0;
 
-    if (isset($_POST['newsletter_optin']) && $_POST['newsletter_optin'] === '1') {
-        update_post_meta($order_id, 'newsletter_optin', 'yes');
-        // Get the custom message set in the settings
-        $message = get_option('newsletter_optin_message', '');
-        // Add an order note with the custom message
-        if (!empty($message)) {
-            $note = "Der Kunde hat bestätigt: " . $message;
-            $order->add_order_note($note);
-        }
-    } else {
-        update_post_meta($order_id, 'newsletter_optin', 'no');
+    update_post_meta($order_id, 'newsletter_optin', $status_confirmed ? 'yes' : 'no');
+    if (!$status_confirmed) {
         return; // Exit if the checkbox was not checked
     }
+
+    $existing_id = $wpdb->get_var($wpdb->prepare("SELECT order_id FROM $table_name WHERE order_id = %d", $order_id));
 
     if ($existing_id) {
         $wpdb->update(
             $table_name,
-            array('email' => $email),
-            array('%d', '%s', '%s'),
-            array('%s')
+            array('email' => $email, 'status_confirmed' => $status_confirmed),
+            array('order_id' => $order_id),
+            array('%s', '%d'), // Corrected boolean to integer type
+            array('%d')
         );
     } else {
         $wpdb->insert(
             $table_name,
-            array('email' => $email, 'name' => $name, 'order_id' => $order_id),
-            array('%s', '%s', '%d', '%s')
+            array('email' => $email, 'name' => $name, 'order_id' => $order_id, 'status_confirmed' => $status_confirmed),
+            array('%s', '%s', '%d', '%d') // Corrected boolean to integer type
         );
     }
 }
-
 add_action('woocommerce_checkout_update_order_meta', 'save_newsletter_optin_checkbox');
+
+
+
 
 
 
@@ -94,10 +93,6 @@ function add_optin_emails_admin_page() {
     );
 }
 
-if (!class_exists('WP_List_Table')) {
-    require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
-}
-
 function handle_email_manual_insertion() {
     if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'add_email_manually_action')) {
         wp_die('Security check failed');
@@ -111,7 +106,7 @@ function handle_email_manual_insertion() {
         global $wpdb;
         $table_name_manual = $wpdb->prefix . 'newsletter_optin_manual';
         $email = sanitize_email($_POST['email']);
-        
+
         if (!is_email($email)) {
             wp_redirect(add_query_arg('message', '3', wp_get_referer()));
             exit;
@@ -119,11 +114,17 @@ function handle_email_manual_insertion() {
 
         $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name_manual WHERE email = %s", $email));
 
-        if (!$exists) {
+        if ($exists == 0) {
             $wpdb->insert(
                 $table_name_manual,
-                array('email' => $email),
-                array('%s')
+                array(
+                    'email' => $email,
+                    'status_confirmed' => 1  // Set to 1 for true
+                ),
+                array(
+                    '%s',    // Placeholder for the email
+                    '%d'     // Placeholder for the TINYINT as an integer
+                )
             );
             wp_redirect(add_query_arg('message', '1', wp_get_referer()));
         } else {
@@ -136,6 +137,10 @@ function handle_email_manual_insertion() {
     }
 }
 add_action('admin_post_add_email_manually', 'handle_email_manual_insertion');
+
+  
+
+
 
 
 // Now hook to admin_post to handle form submission
@@ -256,70 +261,6 @@ if (isset($_GET['message'])) {
 }
 
 
-
-
-
-// Initialize settings
-add_action('admin_init', 'newsletter_optin_settings_init');
-function newsletter_optin_settings_init() {
-    register_setting('newsletter_optin_settings', 'newsletter_optin_enable');
-    register_setting('newsletter_optin_settings', 'newsletter_optin_message');
-
-    add_settings_section(
-        'newsletter_optin_settings_section',
-        'Einstellungen',
-        'newsletter_optin_settings_section_cb',
-        'email_optins'
-    );
-
-    add_settings_field(
-        'newsletter_optin_enable',
-        'E-Mail-Marketing Checkbox aktivieren',
-        'newsletter_optin_enable_cb',
-        'email_optins',
-        'newsletter_optin_settings_section'
-    );
-
-    add_settings_field(
-        'newsletter_optin_message',
-        'Eigener Checkboxtext',
-        'newsletter_optin_message_cb',
-        'email_optins',
-        'newsletter_optin_settings_section'
-    );
-
-
-    // Add the new setting field for CLV
-    add_settings_field(
-        'newsletter_optin_clv_enable',
-        'Customer Lifetime Value (CLV) anzeigen',
-        'newsletter_optin_clv_enable_cb',
-        'email_optins',
-        'newsletter_optin_settings_section'
-    );
-
-    // Register the new option
-    register_setting('newsletter_optin_settings', 'newsletter_optin_clv_enable');
-}
-
-function newsletter_optin_settings_section_cb() {
-}
-
-function newsletter_optin_enable_cb() {
-    $option = get_option('newsletter_optin_enable');
-    echo '<input type="checkbox" id="newsletter_optin_enable" name="newsletter_optin_enable" value="1" ' . checked(1, $option, false) . '>';
-}
-
-function newsletter_optin_message_cb() {
-    $message = get_option('newsletter_optin_message', 'Ja, ich möchte per E-Mail über neue Angebote und Produkte informiert werden.');
-    echo '<input type="text" id="newsletter_optin_message" name="newsletter_optin_message" value="' . esc_attr($message) . '" style="width: 100%;">';
-}
-
-// Callback function for the CLV checkbox
-function newsletter_optin_clv_enable_cb() {
-    $clv_enabled = get_option('newsletter_optin_clv_enable');
-    echo '<input type="checkbox" id="newsletter_optin_clv_enable" name="newsletter_optin_clv_enable" value="1" ' . checked(1, $clv_enabled, false) . '>';
-}
 
 function handle_delete_request() {
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['email']) && wp_verify_nonce($_GET['_wpnonce'], 'delete_email')) {
